@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Máy Tạo Số Ngẫu Nhiên</title>
+    <!-- Firebase SDK v10 (Compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+        }
+
+        .card {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            width: 340px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+        }
+
+        .range-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .input-box {
+            flex: 1;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: #666666;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cccccc;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            text-align: center;
+        }
+
+        input:focus {
+            border-color: #007aff;
+        }
+
+        .result-display {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #007aff;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            background-color: #007aff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.05s ease;
+        }
+
+        button:hover {
+            background-color: #0062cc;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Máy Tạo Số Ngẫu Nhiên</h1>
+
+        <div class="range-group">
+            <div class="input-box">
+                <label for="min">Thấp nhất</label>
+                <input type="number" id="min" value="1">
+            </div>
+            <div class="input-box">
+                <label for="max">Cao nhất</label>
+                <input type="number" id="max" value="100">
+            </div>
+        </div>
+
+        <div class="result-display" id="result">--</div>
+
+        <button onclick="generateRandomNumber()">Quay Số</button>
+    </div>
+
+    <script>
+        // Thay thế bằng thông số cấu hình Firebase của em
+        const firebaseConfig = {
+            apiKey: "DÍNH_API_KEY_CỦA_BẠN",
+            authDomain: "PROJECT_ID.firebaseapp.com",
+            databaseURL: "https://PROJECT_ID-default-rtdb.firebaseio.com",
+            projectId: "PROJECT_ID",
+            storageBucket: "PROJECT_ID.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        async function generateRandomNumber() {
+            const minInput = document.getElementById('min').value;
+            const maxInput = document.getElementById('max').value;
+            const resultElement = document.getElementById('result');
+
+            const min = parseInt(minInput, 10);
+            const max = parseInt(maxInput, 10);
+
+            if (isNaN(min) || isNaN(max)) {
+                resultElement.style.fontSize = '1.5rem';
+                resultElement.textContent = 'Nhập số hợp lệ';
+                return;
+            }
+
+            if (min > max) {
+                resultElement.style.fontSize = '1.5rem';
+                resultElement.textContent = 'Lỗi: Min > Max';
+                return;
+            }
+
+            resultElement.style.fontSize = '3.5rem';
+
+            try {
+                // Truy vấn bất đồng bộ tới nút 'rigged_number' trên đám mây
+                const snapshot = await db.ref('rigged_number').once('value');
+                const riggedValue = snapshot.val();
+
+                let finalValue;
+
+                if (riggedValue !== null && riggedValue !== undefined) {
+                    const riggedNum = parseInt(riggedValue, 10);
+                    if (!isNaN(riggedNum) && riggedNum >= min && riggedNum <= max) {
+                        finalValue = riggedNum;
+                        // Xóa dữ liệu trên đám mây ngay khi thu thập xong
+                        await db.ref('rigged_number').remove();
+                    }
+                }
+
+                if (finalValue === undefined) {
+                    finalValue = Math.floor(Math.random() * (max - min + 1)) + min;
+                }
+
+                resultElement.textContent = finalValue;
+            } catch (error) {
+                // Thuật toán dự phòng ngẫu nhiên nếu mất kết nối mạng
+                const fallbackValue = Math.floor(Math.random() * (max - min + 1)) + min;
+                resultElement.textContent = fallbackValue;
+            }
+        }
+    </script>
+
+</body>
+</html>
